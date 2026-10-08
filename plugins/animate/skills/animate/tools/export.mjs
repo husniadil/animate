@@ -169,12 +169,16 @@ if (!flag('no-audio')) {
 await browser.close();
 
 const full = from === 0 && to === meta.frames - 1;
+// colour: the frames are sRGB, and players read HD and phone video as BT.709. Convert with that matrix and say so in the stream;
+// ffmpeg's default (the BT.601 matrix, untagged) shows saturated colours shifted in browsers.
+const BT709 = ['-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv'];
 if (!flag('no-mux') && !onlyAudio && full) {
   const out = path.join(RENDERS, opt('out', `final${SUFFIX}.mp4`));
   const args = ['-y', '-hide_banner', '-loglevel', 'error',
     '-framerate', String(meta.fps), '-i', path.join(FR, 'f%04d.png'),
     ...(fs.existsSync(wavPath) && !flag('no-audio') ? ['-i', wavPath, '-map', '0:v:0', '-map', '1:a:0', '-c:a', 'aac', '-b:a', '192k'] : ['-map', '0:v:0']),
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', '-r', String(meta.fps),
+    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', ...BT709, '-r', String(meta.fps),
     '-frames:v', String(meta.frames), '-movflags', '+faststart', out];
   const r = spawnSync('ffmpeg', args, { stdio: 'inherit' });
   if (r.status !== 0) { console.error('ffmpeg failed'); process.exit(1); }
@@ -189,7 +193,7 @@ if (!flag('no-mux') && !onlyAudio && full) {
     const marginV = Math.round((vertical ? 470 : 70) / unit), fontSize = Math.round((vertical ? 64 : 46) / unit);
     const style = `Fontname=${process.platform === 'win32' ? 'Consolas' : process.platform === 'darwin' ? 'Menlo' : 'DejaVu Sans Mono'},Fontsize=${fontSize},PrimaryColour=&H00FFFFFF,BackColour=&H99000000,BorderStyle=3,Outline=6,Shadow=0,Alignment=2,MarginV=${marginV}`;
     const r2 = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', 'final.mp4',
-      '-vf', `subtitles=narration.srt:force_style='${style}'`, '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-c:a', 'copy', 'final-captions.mp4'],
+      '-vf', `subtitles=narration.srt:force_style='${style}'`, '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', ...BT709, '-c:a', 'copy', 'final-captions.mp4'],
     { cwd: RENDERS, stdio: 'inherit' });
     if (r2.status !== 0) { console.error('caption burn failed'); process.exit(1); }
     console.log('wrote', path.join(RENDERS, 'final-captions.mp4'), '(narration preview)');
@@ -208,7 +212,7 @@ if (onlyAudio && !flag('no-mux') && fs.existsSync(path.join(RENDERS, `final${SUF
 if (flag('share') && fs.existsSync(path.join(RENDERS, `final${SUFFIX}.mp4`))) {
   const out = path.join(RENDERS, `share${SUFFIX}.mp4`);
   const r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', path.join(RENDERS, `final${SUFFIX}.mp4`), '-c:v', 'libx264', '-crf', '24', '-preset', 'slow',
-    '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out], { stdio: 'inherit' });
+    '-pix_fmt', 'yuv420p', ...BT709, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out], { stdio: 'inherit' });
   if (r.status !== 0) { console.error('share encode failed'); process.exit(1); }
   console.log('wrote', out);
 }
