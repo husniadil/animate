@@ -2,14 +2,14 @@
 // Review pass for pieces/<name>/renders/final.mp4
 //   1. per-shot contact sheets (every 0.25s); beside the reference images listed in piece.json, those side-by-sides
 //      go to references/_review/<piece>/ (they hold reference pixels; references/ stays gitignored)
-//      (vertical pieces get the phone-UI safe zones drawn in red)
+//      (the platform-UI safe zones, TIMELINE.safe or a phone default for vertical pieces, are drawn in red)
 //   2. cut timing: every TIMELINE cut vs its beat grid (8ths, or 16ths inside [TIMELINE.fastFrom, fastTo)), confirmed by pixel difference
 //   3. pacing summary, on-2s montage check, flat-frame scan, loop check
 //   4. narration (if TIMELINE.narration): words per second per line, and whether each stressed word lands on a cut
 //   5. story arc (if TIMELINE.acts): per-act cut rate, motion and loudness (mix + music stem), checked against the
 //      arc rules for the roles journey / peak / silence / gift / goodbye
 //   6. anchor (if TIMELINE.anchor and window.anchorAt(t)): how often the protagonist sits on its screen spot
-//   7. text (tools/textcheck.mjs): strings cut off by the frame, overlapping other text, or under the phone UI
+//   7. text (tools/textcheck.mjs): strings cut off by the frame, overlapping other text, or under the platform UI
 //   8. sound (if renders/audio.wav): the loudest 100ms window, the silence before it, integrated loudness (LUFS), true peak
 //   9. dead beats: stretches longer than review.deadMax (default 3s) where the picture barely changes; review/phone.jpg
 //      (one frame a second at 360px wide: read it at phone size)
@@ -90,7 +90,7 @@ const info = await page.evaluate(() => {
     cutFrames: T.cuts.map((c) => { let f = 0; while (f < T.frames && !past(f / T.fps, c)) f++; return f; }),
   };
 });
-const TXT = await textCheck(page, { safe: info.T.height > info.T.width ? info.T.safe || PIECE.review?.safe || { top: 240, bottom: 420, right: 140 } : null });
+const TXT = await textCheck(page, { safe: info.T.safe || PIECE.review?.safe || (info.T.height > info.T.width ? { top: 240, bottom: 420, right: 140 } : null) });
 await browser.close();
 const { T } = info;
 // another format than the main one: its own render and review folder
@@ -98,7 +98,7 @@ if (FORMAT && FORMAT !== (PIECE.formats || [])[0]) { const suf = `-${T.width}x${
 fs.mkdirSync(REVIEW, { recursive: true });
 if (!fs.existsSync(VIDEO)) { console.error('no render at', VIDEO, '- run export.mjs first'); process.exit(1); }
 const FW = T.width || 1080, FH = T.height || 1080, VERTICAL = FH > FW;
-const SAFE = T.safe || PIECE.review?.safe || { top: 240, bottom: 420, right: 140 };
+const SAFE = T.safe || PIECE.review?.safe || (VERTICAL ? { top: 240, bottom: 420, right: 140 } : null);
 
 // ---- decode final.mp4 to small grayscale frames for pixel-difference measurements
 const SW = 96, SH = Math.round((96 * FH) / FW / 2) * 2, PX = SW * SH;
@@ -114,7 +114,7 @@ const FONTFILE = ['C:/Windows/Fonts/consolab.ttf', '/System/Library/Fonts/Menlo.
 const font = FONTFILE ? `fontfile='${FONTFILE.replace(':', '\\:')}'` : "font='monospace'";
 const cellW = VERTICAL ? 270 : 360, cellH = Math.round((cellW * FH) / FW / 2) * 2, cols = 4;
 const labelSize = Math.round(((VERTICAL ? 60 : 40) * FW) / 1080);
-const safeBoxes = VERTICAL
+const safeBoxes = SAFE
   ? `drawbox=x=0:y=0:w=iw:h=${SAFE.top}:color=red@0.22:t=fill,drawbox=x=0:y=ih-${SAFE.bottom}:w=iw:h=${SAFE.bottom}:color=red@0.22:t=fill,drawbox=x=iw-${SAFE.right}:y=${SAFE.top}:w=${SAFE.right}:h=ih-${SAFE.top + SAFE.bottom}:color=red@0.22:t=fill,`
   : '';
 for (const shot of T.shots) {
