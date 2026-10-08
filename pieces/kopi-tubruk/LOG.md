@@ -31,3 +31,29 @@
 - Weakest shots: panel 7, the cup reads as a tall tube, not a cup close-up; panel 2 (1:1), the "Sun-dried." tag sits over a bean. Panel 2 has few beans distinct enough to read as the constant.
 - Not checked: the animation (not built, by design until the storyboard is approved); text fit (review.mjs needs the animated build); sound (placeholder score only, one pad).
 - Git note: `pieces/kopi-tubruk/index.html` is excluded locally in `.git/info/exclude` (per director's answer), not in `.gitignore`.
+
+## Build and review - 2026-10-08
+
+- Built: `node tools/build.mjs ../../../../pieces/kopi-tubruk` (10 parts, syntax ok, no external assets). Animated seven worlds, composed score, four 0.8s morph bridges (d 0.4), two hard cuts (15.5, 18.0).
+- Exported both formats with `--formats 9:16,1:1 --share`. Renders are in `renders/`, not committed; the two share files are copied into `checkins/`.
+- Review 9:16 (`review.mjs`): cuts on the 8th grid PASS (15.5, 18.0); morphs on grid PASS (2.75, 6.25, 9.5, 12.5); story arc 4/4 PASS (gift loudest; busiest moment is not the loudest; silence −52.6 dB vs peak −15.7; gift holds 0.5 cuts/s); text PASS (0 cut-off, 0 in the safe zone); dead beats PASS (none over 3s); sound: loudest 100ms at 18.0s (−9.8 dBFS) in the payoff; 2.0s at ≤ −40 dBFS before it; −15.0 LUFS integrated, range 4.7 LU, true peak −2.0 dBFS.
+- Review 1:1 (`review.mjs --format 1:1`): the same checks, all PASS, with the same sound numbers.
+- Per-shot contact sheets checked: pour (shot 5) PASS, kettle readable, grounds swirl into a cloud. Sip (shot 7) PASS: warm dawn by the last frame, sun clear of the glass, same clear glass tilting toward camera. Steam mostly rises straight up rather than curling toward the sun: a known gap.
+- Weakest shot: mortar (shot 4). The lumpang is tall and stands on the ground, but it reads as a grey cup, the pestle's hand is cut at the top edge, and the bean-to-grounds change is too small to read at contact-sheet size. Fix next run: a clearer stone texture and a pestle hand placed inside the frame.
+- Not verified: listening to the score (we measured it only); the phone sheet (`review/phone.jpg`) was generated but not read at phone size in this run.
+
+## Per-shot PASS table
+
+| # | shot | t (s) | frame | verdict |
+|---|---|---|---|---|
+| 1 | cherry | 0.0-2.75 | cherries against the branch, no stems, pinch hand | PASS |
+| 2 | sun-dried | 2.75-6.25 | beans clear of the caption in 1:1, rake sweeps | PASS |
+| 3 | roasted | 6.25-9.5 | clay wok over crossed logs, ribbon smoke, spatula | PASS |
+| 4 | pounded whole | 9.5-12.5 | tall stone pot, pestle, grounds | PASS with a known gap (weakest) |
+| 5 | no filter | 12.5-15.5 | kettle in parts, grounds swirl up | PASS |
+| 6 | wait | 15.5-18.0 | cloudy glass settling, sediment thickens | PASS |
+| 7 | the sip | 18.0-20.0 | tilted clear glass, dawn, sun, steam toward sun (partial) | PASS with a known gap |
+
+## Weakest shot and what would fix it
+
+- Shot 4: the lumpang needs a readable stone surface, and the pestle hand must sit fully in frame. The bean breaking into grounds should be larger than now.
