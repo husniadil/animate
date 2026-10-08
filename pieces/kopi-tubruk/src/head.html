@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kopi tubruk</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1b1714; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { max-width: 100vw; max-height: 100vh; width: auto; height: auto; display: block; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+"use strict";
+// =====================================================================
+//  KOPI TUBRUK — 20.0s @ 120 BPM, 24fps, cut paper. Seven worlds joined by four shape morphs and two hard cuts.
+//  The coffee bean is the constant (no face). A pair of cut-paper hands runs through the steps.
+//  Formats: 9:16 (main) and 1:1. ?format=1:1 previews the other shape.
+// =====================================================================
+const FORMATS = { '9:16': [1080, 1920], '4:5': [1080, 1350], '1:1': [1080, 1080], '16:9': [1920, 1080] };
+const FORMAT = new URLSearchParams(location.search).get('format') || '9:16';   // the piece's main format first
+const FPS = 24, [W, H] = FORMATS[FORMAT];
+{ const cv = document.getElementById('c'); cv.width = W; cv.height = H; }
+// a supplied music track: tools/beats.mjs writes beats.json and build.mjs injects it as BEATS (see SKILL.md -> Music)
+const BPM = typeof BEATS !== 'undefined' ? BEATS.bpm : 120, GRID0 = typeof BEATS !== 'undefined' ? BEATS.offset : 0;
+const BEAT = 60 / BPM, E8 = BEAT / 2, E16 = BEAT / 4;   // at 120 BPM: 0.5 / 0.25 / 0.125s = 12 / 6 / 3 frames
+const DURATION = 20.0;
+const NFRAMES = Math.round(DURATION * FPS);
+const LOOP_T = NFRAMES / FPS;
+// the platform UI per format (9:16: keep content in x 60–940, y 250–1500)
+const SAFE = { '9:16': { top: 240, bottom: 420, right: 140 }, '4:5': { top: 80, bottom: 160, right: 60 }, '1:1': { top: 60, bottom: 110, right: 60 }, '16:9': { top: 60, bottom: 110, right: 60 } }[FORMAT];
+const HAND = '"Ink Free", "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", "Comic Neue", cursive';   // local handwriting fonts: Windows, macOS, Linux
+const CX = (W - SAFE.right) / 2;                              // caption centre (left of the right-hand UI strip on 9:16)
+
+// onBeat(t): the nearest 8th of the grid — the song's when a track is supplied (BEATS), else 120 BPM from 0.
+const onBeat = (t) => +(GRID0 + Math.round((t - GRID0) / E8) * E8).toFixed(4);
+// the shape morphs (centre of each bridge, 0.375s either side) and the two hard cuts
+const MORPHS = [onBeat(2.75), onBeat(6.25), onBeat(9.5), onBeat(12.5)];   // cherry->bean, sun->wok, wok->mortar, grounds->glass
+const CUTS = [onBeat(15.5), onBeat(18.0)];                                   // glass close-up, then the sip
+// eras: [t0, t1, scene]. Boundaries with a BRIDGE (src/bridges.js) morph; CUTS are hard cuts.
+const ERA_LIST = [
+  [0, MORPHS[0], () => sceneCherry()],
+  [MORPHS[0], MORPHS[1], () => sceneDry()],
+  [MORPHS[1], MORPHS[2], () => sceneWok()],
+  [MORPHS[2], MORPHS[3], () => sceneMortar()],
+  [MORPHS[3], CUTS[0], () => scenePour()],
+  [CUTS[0], CUTS[1], () => sceneWait()],
+  [CUTS[1], DURATION, () => sceneSip()],
+];
+const SHOTS = [
+  //  key        era  t0          t1          title
+  ['cherry',     0,   0,          MORPHS[0],  'it starts as a cherry'],
+  ['dry',        1,   MORPHS[0],  MORPHS[1],  'sun-dried'],
+  ['wok',        2,   MORPHS[1],  MORPHS[2],  'roasted'],
+  ['mortar',     3,   MORPHS[2],  MORPHS[3],  'pounded whole'],
+  ['pour',       4,   MORPHS[3],  CUTS[0],    'no filter; boiling water, straight on'],
+  ['wait',       5,   CUTS[0],    CUTS[1],    'wait for the grounds to sink'],
+  ['sip',        6,   CUTS[1],    DURATION,   'the sip'],
+];
+const TIMELINE = {
+  width: W, height: H, fps: FPS, bpm: BPM, gridOffset: GRID0, duration: DURATION, frames: NFRAMES, loop: LOOP_T, safe: SAFE, aspect: FORMAT,
+  format: 'morph-chain',
+  shots: SHOTS.map(([key, era, t0, t1, title], i) => ({ id: i + 1, key, era, t0, t1, title })),
+  cuts: CUTS,            // hard cuts (seconds, on the 8th grid)
+  morphs: MORPHS,        // morph bridge centres (seconds, on the 8th grid)
+  cues: { pick: onBeat(0.5), pour: onBeat(12.75), wait: onBeat(15.5), sip: onBeat(18.0) },
+  acts: [
+    { name: '1 Cherry to sun',  role: 'build',   t0: 0,        t1: MORPHS[1] },
+    { name: '2 Wok and mortar', role: 'journey', t0: MORPHS[1], t1: MORPHS[3] },
+    { name: '3 Pour',           role: 'peak',    t0: MORPHS[3], t1: CUTS[0] },
+    { name: '4 Wait',           role: 'silence', t0: CUTS[0],   t1: CUTS[1] },
+    { name: '5 Sip',            role: 'gift',    t0: CUTS[1],   t1: DURATION },
+  ],
+  // the storyboard: one key frame per shot (filled at the storyboard check)
+  board: SHOTS.map(([key, era, t0, t1, title]) => ({ t: +((t0 + t1) / 2).toFixed(3), title, sound: '', next: '' })),
+  narration: [],
+};
+window.TIMELINE = TIMELINE;
