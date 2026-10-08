@@ -1,0 +1,9 @@
+{
+  "name": "kopi-tubruk",
+  "title": "Kopi tubruk",
+  "format": { "width": 1080, "height": 1920, "fps": 24, "bpm": 120, "duration": 20.0, "frames": 480 },
+  "formats": ["9:16", "1:1"],
+  "storyFormat": "F2 morph chain",
+  "style": "cut-paper",
+  "review": { "safe": { "top": 240, "bottom": 420, "right": 140 }, "refs": {} }
+}
