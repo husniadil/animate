@@ -61,6 +61,7 @@ Each rule was learned the hard way on a real piece. Follow them unless the user 
 - **Payoff recipe:** a short chord stab (~0.4s) + a sub on the hit, a *flat* chord after it, nothing busy on top. Otherwise the held chord or a busy section outscores the hit.
 - **Silence needs a hard stop:** dry sends in the last beat before it, every event ending before it, a faint room tone at most.
 - **You can't hear the score.** Measure it (`review.mjs` arc table, the loudest 100ms window) and tell the user to listen.
+- **Two renders of a busy score can differ in the last bit** (the browser sums a bus's inputs in a run-dependent order). When the WAV must be byte-identical every run (a reproducibility check), export with `--exact-audio`; it is slower on long, dense scores.
 
 ## Code
 - **A style is a plug-in:** `piece.json` `"style"` picks `styles/<name>/kit.js`; the renderer only calls its `STYLE` hooks. One style per piece (kits share names).

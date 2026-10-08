@@ -52,7 +52,7 @@ Draw every beat in the approved look. Fill `TIMELINE.board` with one key time pe
 3. `node tools/build.mjs pieces/<name>` → `index.html` (the style's kit is pulled in from `piece.json` `"style"`).
 4. Test tiles while building: `node tools/tile.mjs pieces/<name> tile.png <frames...>` — look at them; tile across every morph and cut.
 5. Score in `src/score.js` (see craft.md → Sound).
-6. `node tools/export.mjs pieces/<name> --share` → frames, `audio.wav`, stems, `renders/final.mp4`, `renders/share.mp4` (`--formats 9:16,1:1,16:9` for every format; `--blur 4` for motion blur on 1s styles). Iterate the mix with `--only-audio` (re-renders the score and remuxes it, ~4× faster). Add `--exact-audio` when the WAV must come out byte-identical on every run (a reproducibility check); it is slower on long, dense scores.
+6. `node tools/export.mjs pieces/<name> --share` → frames, `audio.wav`, stems, `renders/final.mp4`, `renders/share.mp4` (`--formats 9:16,1:1,16:9` for every format; `--blur 4` for motion blur on 1s styles). Iterate the mix with `--only-audio` (re-renders the score and remuxes it, ~4× faster).
 7. `node tools/review.mjs pieces/<name>` → contact sheets per shot, cut grid, morph grid, story arc, anchor, **text** (cut off / overlapping / under the phone UI) and **sound** (the loudest moment, the silence before it, LUFS). Fix until it passes, view the sheets, write a per-shot PASS table in `LOG.md`. Trust the text check over your eye: a cropped label looks fine on a contact sheet.
 
 ### 5. Deliver
