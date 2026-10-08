@@ -24,9 +24,9 @@
   noiseHit(12.5, 2.9, 'highpass', 6000, 0.5, 0.02);
   riser(12.5, 15.4, 0.05);
   pad(12.5, 15.5, ['D3', 'A3', 'D4', 'Fs4'], 0.035, { cut: 1400, att: 0.3, rel: 0.2 });
-  for (let n = 0; n < 24; n++) pluck(12.5 + n * E16 * 2, nz(['D5', 'E5', 'Fs5', 'A5', 'B5', 'D6'][n % 6]), 0.05, n % 2 ? 0.25 : -0.25, 0.25, 4200, 0.3);
+  for (let n = 0; n < 12; n++) pluck(12.5 + n * E16 * 2, nz(['D5', 'E5', 'Fs5', 'A5', 'B5', 'D6'][n % 6]), 0.05, n % 2 ? 0.25 : -0.25, 0.25, 4200, 0.3);
   // 6 wait (15.5-18.0): the silence. A faint pad only, nothing else
-  pad(15.5, 18.0, ['D3', 'A3'], 0.006, { cut: 400, att: 0.8, rel: 0.5 });
+  pad(15.5, 18.0, ['D3', 'A3'], 0.0008, { cut: 400, att: 0.8, rel: 0.5 });
   // 7 sip (18.0-20.0): the payoff. A chord stab and a sub on the hit, a flat chord after it
   to = 'm';
   [['D4', 0], ['Fs4', 0], ['A4', 0], ['D5', 0]].forEach(([n]) => pluck(18.0, nz(n), 0.22, 0, 0.45, 3200, 0.3));

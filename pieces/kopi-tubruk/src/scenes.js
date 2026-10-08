@@ -247,9 +247,9 @@ function sceneWait() {
 
 // ---- world 7: the sip. The same clear glass tilts toward the camera in a paper hand; the sky goes from pre-dawn navy to a warm dawn; the sun rises behind; steam curls toward it
 function sceneSip() {
-  const t = clamp01((TT - E0) / 2.0), dawn = easeS((TT - E0) / 4);
+  const t = clamp01((TT - E0) / 2.0), dawn = easeS((TT - E0) / 2.0);
   cut(rect(-30, -30, W + 60, H + 60, 0), lerpHex(PAL.night, '#f4c58a', dawn), { key: 'wall7', shadow: false, tear: 0, shade: false, pat: pat.dots('rgba(255,230,180,0.14)', 4, 70) });
-  const sunY = LY(0.62) - (LY(0.62) - LY(0.3)) * dawn, sunX = LX(0.64);
+  const sunY = LY(0.62) - (LY(0.62) - LY(0.24)) * dawn, sunX = LX(0.8);
   cut(ellipsePts(sunX, sunY, 170 * UNIT, 170 * UNIT, 0, 48), PAL.yellow, { key: 'sun7', crayon: '#e6b23a', crAl: 0.3, sb: 14 });
   // the glass: same clear glass and coffee as worlds 5 and 6, lifted and tilted toward the camera
   const gx = LX(0.5), rimY = LY(0.36), botY = LY(0.9), rT = 230 * UNIT, rB = 180 * UNIT, o = 0.35 + 0.65 * t, th = 0.14 * t;
