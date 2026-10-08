@@ -55,7 +55,7 @@ Each rule was learned the hard way on a real piece. Follow them unless the user 
 - **With a voice-over, the voice is the clock and the payoff sits in a pause.** Each beat starts ~0.3s after a sentence ends; land the payoff hit (and the picture's return) in the silence *before* the line that names it — under speech the duck swallows it. Judge the arc on the score without the voice.
 - **With the user's track, the song is the arc.** Find its drop and its biggest hit in `beats.json` and put the turn and the payoff there; cut on its beats (`onBeat`), keep the score to sound effects.
 - **The score improves with the story** (thin early, fullest at the peak); motifs carry characters (the spark = a rising fifth).
-- **A loudness stage** (RMS-normalise to −17 dBFS, look-ahead limiter at −1 dBFS) is in `kit/score-tail.js`; stems share the mix gain so they sum back to it.
+- **A loudness stage** (integrated loudness to −15 LUFS, look-ahead true-peak limiter at −2 dBTP, which leaves room for the AAC encode's overshoot) is in `kit/score-tail.js`; stems share the mix gain so they sum back to it.
 - **Under that stage, balance by removing energy, not adding it** — every relative boost is partly undone.
 - **The sustained pad sets a section's p90**, not the plucks; cut the pad to quiet a section.
 - **Payoff recipe:** a short chord stab (~0.4s) + a sub on the hit, a *flat* chord after it, nothing busy on top. Otherwise the held chord or a busy section outscores the hit.
