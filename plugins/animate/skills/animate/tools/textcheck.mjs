@@ -3,7 +3,7 @@
 // reports itself through kit/core.js reportText), traced to screen space on sampled frames.
 // Flags text that is cut off by the frame edge, text that overlaps other text, and text under the platform UI (TIMELINE.safe).
 // A model reviewing contact sheets by eye misses these (a cropped label reads as "fine" at thumbnail size).
-//   usage: node tools/textcheck.mjs <piece dir> [--every 6]       (also run by review.mjs)
+//   usage: node tools/textcheck.mjs <piece dir> [--every 6] [--format 1:1]       (also run by review.mjs)
 // Deliberate crowding (a storm of chat bubbles flying past the edges) goes in piece.json:
 //   "review": { "textIgnore": [[t0, t1, "why"]] }  -> issues inside those seconds print as OK (allowed), not FAIL.
 // Frames inside morph bridges are skipped (the world is scaled through a window there on purpose).

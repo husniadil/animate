@@ -1,5 +1,6 @@
 # renders and intermediates are rebuilt by the tools
 **/frames/
+**/frames-*/
 **/renders/
 **/review/*-vs-ref.*
 node_modules/
@@ -7,3 +8,4 @@ __pycache__/
 # built files (tools/build.mjs makes them from src/ + kit/ + the style)
 plugins/**/index.html
 plugins/**/review/
+plugins/**/review-*/
