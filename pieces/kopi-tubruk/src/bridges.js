@@ -6,7 +6,7 @@
 //  Four shape morphs: cherry -> bean, sun -> wok mouth, wok mouth -> mortar mouth, grounds -> glass.
 //  CUTS (hard cuts) are not listed here: every era boundary without a bridge is a hard cut.
 // =====================================================================
-const ERA_BG = [PAL.mint, PAL.cream, PAL.mustard, PAL.cream, PAL.cream, PAL.navy, PAL.navy];
+const ERA_BG = [PAL.mint, PAL.sky, PAL.mustard, PAL.pink, PAL.teal, PAL.navy, PAL.night];
 function pieceCam(era, t) { return null; }
 const ell = (o, c) => ({ P: ellipsePts(o.x, o.y, o.rx ?? o.r, o.ry ?? o.r, 0, 64), c });
 const BRIDGES = [

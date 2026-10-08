@@ -74,7 +74,15 @@ const TIMELINE = {
     { name: '5 Sip',            role: 'gift',    t0: CUTS[1],   t1: DURATION },
   ],
   // the storyboard: one key frame per shot (filled at the storyboard check)
-  board: SHOTS.map(([key, era, t0, t1, title]) => ({ t: +((t0 + t1) / 2).toFixed(3), title, sound: '', next: '' })),
+  board: [
+    { t: 1.25,  title: 'it starts as a cherry', sound: 'thin plucks, a chime on the cherry', next: 'morph: the cherry becomes a bean' },
+    { t: 4.5,   title: 'sun-dried', sound: 'soft shuffle, the groove starts', next: 'morph: the sun becomes the wok mouth' },
+    { t: 7.75,  title: 'roasted', sound: 'crackle, density rises', next: 'morph: the wok mouth becomes the mortar' },
+    { t: 11.0,  title: 'pounded whole', sound: 'pestle knocks on the 8ths', next: 'morph: the grounds become the glass' },
+    { t: 14.0,  title: 'no filter; boiling water, straight on', sound: 'busiest moment: riser into the pour', next: 'hard cut' },
+    { t: 16.75, title: 'wait for the grounds to sink', sound: 'silence about 2.5s, a faint pad only', next: 'hard cut' },
+    { t: 19.0,  title: 'the sip', sound: 'loudest hit: chord stab and sub', next: 'end' },
+  ],
   narration: [],
 };
 window.TIMELINE = TIMELINE;

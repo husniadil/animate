@@ -19,3 +19,15 @@
 - Placeholder score (one pad). The real score comes after the storyboard.
 - Weakest in the look: the bean as the constant barely shows in these three frames (it appears as the beans in the wok, and as the bridge shape). The 1:1 "Roasted." caption touches the logs under the wok; the storyboard must move it.
 - Not checked: text fit (review.mjs has not run, the piece is not animated), and sound (none yet).
+
+## Storyboard check - 2026-10-08
+
+- Look-check feedback folded in (director's answer, no new look check sent). Cherry: cluster of five on a branch with opposite leaf pairs, close-up, paper hand pinching the centre cherry. Wok: teardrop flames over crossed logs, curling-ribbon smoke, distinct roasted beans with creases (some tossed above the rim), wooden spatula. Glass: curling-ribbon steam, a thin ring of grounds early, a sediment layer that thickens, a few grounds drifting, caption clear of the glass.
+- All seven worlds drawn: cherry, sun-dry yard (the sun is the bridge object), wok, mortar (lumpang, pestle, grounds inside the bowl), pour (kettle, stream, two-line caption), wait (glass, sediment), sip (pre-dawn navy, sun rising behind the cup, steam toward it).
+- Morph centres 2.75, 6.25, 9.5, 12.5. Hard cuts 15.5 and 18.0.
+- Board: `checkins/board.png` (9:16) and `checkins/board-1x1.png` (1:1), both rendered with tools/storyboard.mjs. Panel captions on the board show the sound and the morph for each beat.
+- Changes made while building the board: mortar grounds moved inside the bowl (they sat as a separate disc); pour caption tags spaced 84px (they overlapped at 60px); the board carries each beat's sound and transition from the brief.
+- Checklist deviation: the bean has no face (brief). The cut-paper hands carry the human thread.
+- Weakest shots: panel 7, the cup reads as a tall tube, not a cup close-up; panel 2 (1:1), the "Sun-dried." tag sits over a bean. Panel 2 has few beans distinct enough to read as the constant.
+- Not checked: the animation (not built, by design until the storyboard is approved); text fit (review.mjs needs the animated build); sound (placeholder score only, one pad).
+- Git note: `pieces/kopi-tubruk/index.html` is excluded locally in `.git/info/exclude` (per director's answer), not in `.gitignore`.
