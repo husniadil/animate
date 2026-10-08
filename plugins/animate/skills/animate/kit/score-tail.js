@@ -53,7 +53,8 @@ function truePeakGain(L, R, k, ceil, sr, g) {
   const need = new Float32Array(N).fill(1);
   for (const X of [L, R]) for (let i = 0; i < N; i++) {
     let pk = Math.abs(X[i] * g[i]);
-    if (pk * k > ceil * 0.5) for (const c of coef) { let v = 0; for (let j = 0; j < 2 * TAPS; j++) { const n = i + j - TAPS + 1; if (n >= 0 && n < N) v += c[j] * X[n] * g[n]; } pk = Math.max(pk, Math.abs(v)); }
+    // the phases sit between i and i + 1, so a peak rising into a loud sample from a quiet one is checked too
+    if (Math.max(pk, i + 1 < N ? Math.abs(X[i + 1] * g[i + 1]) : 0) * k > ceil * 0.5) for (const c of coef) { let v = 0; for (let j = 0; j < 2 * TAPS; j++) { const n = i + j - TAPS + 1; if (n >= 0 && n < N) v += c[j] * X[n] * g[n]; } pk = Math.max(pk, Math.abs(v)); }
     const p = pk * k; if (p > ceil) need[i] = Math.min(need[i], ceil / p);
   }
   const att = Math.exp(-1 / (0.0015 * sr)), rel = Math.exp(-1 / (0.09 * sr));
