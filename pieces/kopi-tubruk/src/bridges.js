@@ -10,8 +10,8 @@ const ERA_BG = [PAL.mint, PAL.sky, PAL.mustard, PAL.pink, PAL.teal, PAL.navy, PA
 function pieceCam(era, t) { return null; }
 const ell = (o, c) => ({ P: ellipsePts(o.x, o.y, o.rx ?? o.r, o.ry ?? o.r, 0, 64), c });
 const BRIDGES = [
-  { tc: MORPHS[0], A: () => ell(CHERRY_AT(), RED), B: () => ell(BEAN_AT(), BEAN) },
-  { tc: MORPHS[1], A: () => ell(SUN_AT(), PAL.yellow), B: () => ell(WOK_AT(), CLAY) },
-  { tc: MORPHS[2], A: () => ell(WOK_AT(), CLAY), B: () => ell(MORTAR_AT(), PAL.wood) },
-  { tc: MORPHS[3], A: () => ell(GROUNDS_AT(), BEAND), B: () => ell(GLASS_AT(), '#cfe2ee') },
+  { tc: MORPHS[0], d: 0.4, A: () => ell(CHERRY_AT(), RED), B: () => ell(BEAN_AT(), BEAN) },
+  { tc: MORPHS[1], d: 0.4, A: () => ell(SUN_AT(), PAL.yellow), B: () => ell(WOK_AT(), CLAY) },
+  { tc: MORPHS[2], d: 0.4, A: () => ell(WOK_AT(), CLAY), B: () => ell(MORTAR_AT(), PAL.wood) },
+  { tc: MORPHS[3], d: 0.4, A: () => ell(GROUNDS_AT(), BEAND), B: () => ell(GLASS_AT(), '#cfe2ee') },
 ];
