@@ -16,8 +16,10 @@
 //           replaces the synthesized music; the score's sfx bus is mixed on top, then loudness to -14 LUFS
 // voice:    piece.json "voice": { "file": "voice/voice.wav", "music": -14, "gain": 0 } — the voice-over (tools/voice.mjs)
 //           over the score: the score at "music" dB, ducked a little more while the voice speaks, then -14 LUFS
+// exact:    --exact-audio renders the score to the same bytes on every run (kit/score-head.js); without it a busy score can
+//           differ in the last bit between renders. It costs render time on long, dense scores (about 40% on a 60 s one)
 //
-// usage: node tools/export.mjs pieces/<name> [--from N] [--to N] [--workers 4] [--no-audio] [--no-mux] [--no-captions] [--only-audio] [--share] [--gpu] [--format F | --formats A,B] [--blur N]
+// usage: node tools/export.mjs pieces/<name> [--from N] [--to N] [--workers 4] [--no-audio] [--no-mux] [--no-captions] [--only-audio] [--share] [--gpu] [--format F | --formats A,B] [--blur N] [--exact-audio]
 import { createRequire } from 'node:module';
 import { execSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -34,7 +36,7 @@ function loadPlaywright() {
 }
 const { chromium } = loadPlaywright();
 
-const USAGE = 'usage: node tools/export.mjs pieces/<name> [--from N] [--to N] [--workers 4] [--no-audio] [--no-mux] [--no-captions] [--only-audio] [--share] [--gpu] [--format F | --formats A,B] [--blur N]';
+const USAGE = 'usage: node tools/export.mjs pieces/<name> [--from N] [--to N] [--workers 4] [--no-audio] [--no-mux] [--no-captions] [--only-audio] [--share] [--gpu] [--format F | --formats A,B] [--blur N] [--exact-audio]';
 const argv = process.argv.slice(2);
 if (!argv[0] || argv[0].startsWith('--')) { console.error(USAGE); process.exit(2); }
 const ROOT = path.resolve(argv[0]);
@@ -56,7 +58,7 @@ if (opt('formats')) {
 const workers = parseInt(opt('workers', '4'), 10);
 const onlyAudio = flag('only-audio');
 const FORMAT = opt('format', null), BLUR = Math.max(1, parseInt(opt('blur', '1'), 10));
-const url = pathToFileURL(path.join(ROOT, 'index.html')).href + '?export=1' + (FORMAT ? `&format=${encodeURIComponent(FORMAT)}` : '');
+const url = pathToFileURL(path.join(ROOT, 'index.html')).href + '?export=1' + (FORMAT ? `&format=${encodeURIComponent(FORMAT)}` : '') + (flag('exact-audio') ? '&exact-audio' : '');
 const PIECE_JSON = fs.existsSync(path.join(ROOT, 'piece.json')) ? JSON.parse(fs.readFileSync(path.join(ROOT, 'piece.json'), 'utf8')) : {};
 
 fs.mkdirSync(RENDERS, { recursive: true });
