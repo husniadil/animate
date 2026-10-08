@@ -40,6 +40,7 @@ const ROOT = path.resolve(process.argv[2]);
 const FORMAT = process.argv.includes('--format') ? process.argv[process.argv.indexOf('--format') + 1] : null;
 let REVIEW = path.join(ROOT, 'review');
 let VIDEO = path.join(ROOT, 'renders', 'final.mp4');
+let FRAMES = path.join(ROOT, 'frames');
 
 const PIECE = JSON.parse(fs.readFileSync(path.join(ROOT, 'piece.json'), 'utf8'));
 // a voice-over piece (piece.json "voice"): the story arc and the payoff window are judged on the score alone
@@ -94,7 +95,7 @@ const TXT = await textCheck(page, { safe: info.T.height > info.T.width ? info.T.
 await browser.close();
 const { T } = info;
 // another format than the main one: its own render and review folder
-if (FORMAT && FORMAT !== (PIECE.formats || [])[0]) { const suf = `-${T.width}x${T.height}`; VIDEO = path.join(ROOT, 'renders', `final${suf}.mp4`); REVIEW = path.join(ROOT, `review${suf}`); }
+if (FORMAT && FORMAT !== (PIECE.formats || [])[0]) { const suf = `-${T.width}x${T.height}`; VIDEO = path.join(ROOT, 'renders', `final${suf}.mp4`); REVIEW = path.join(ROOT, `review${suf}`); FRAMES = path.join(ROOT, `frames${suf}`); }
 fs.mkdirSync(REVIEW, { recursive: true });
 if (!fs.existsSync(VIDEO)) { console.error('no render at', VIDEO, '- run export.mjs first'); process.exit(1); }
 const FW = T.width || 1080, FH = T.height || 1080, VERTICAL = FH > FW;
@@ -125,7 +126,7 @@ for (const shot of T.shots) {
   const tag = `shot${String(shot.id).padStart(2, '0')}`;
   const sheet = path.join(REVIEW, `${tag}-sheet.jpg`);
   const sel = uniq.map((f) => `eq(n\\,${f})`).join('+');
-  let r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(T.fps), '-start_number', '0', '-i', path.join(ROOT, 'frames', 'f%04d.png'),
+  let r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(T.fps), '-start_number', '0', '-i', path.join(FRAMES, 'f%04d.png'),
     '-vf', `${safeBoxes}drawtext=${font}:text='%{pts\\:hms}  f%{n}':x=14:y=14:fontsize=${labelSize}:fontcolor=yellow:box=1:boxcolor=black@0.65:boxborderw=6,select='${sel}',scale=${cellW}:${cellH},tile=${cols}x${rows}`,
     '-frames:v', '1', '-q:v', '3', sheet], { stdio: 'inherit' });
   if (r.status !== 0) throw new Error('sheet failed for shot ' + shot.id);
@@ -147,7 +148,7 @@ for (const shot of T.shots) {
       '-frames:v', '1', '-q:v', '3', out], { stdio: 'inherit' });
     if (r.status !== 0) throw new Error('side-by-side failed for shot ' + shot.id);
   }
-  console.log(`shot ${shot.id} (${shot.title}): ${uniq.length} frames [${uniq.join(',')}] -> review/${tag}-sheet.jpg${refs.length ? ` + references/_review/${path.basename(ROOT)}/${tag}-vs-ref.jpg` : ''}`);
+  console.log(`shot ${shot.id} (${shot.title}): ${uniq.length} frames [${uniq.join(',')}] -> ${path.relative(ROOT, REVIEW)}/${tag}-sheet.jpg${refs.length ? ` + references/_review/${path.basename(ROOT)}/${tag}-vs-ref.jpg` : ''}`);
 }
 
 // ---- cut timing
