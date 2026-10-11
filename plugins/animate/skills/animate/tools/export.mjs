@@ -181,7 +181,7 @@ if (!flag('no-mux') && !onlyAudio && full) {
   const args = ['-y', '-hide_banner', '-loglevel', 'error',
     '-framerate', String(meta.fps), '-i', path.join(FR, 'f%04d.png'),
     ...(fs.existsSync(wavPath) && !flag('no-audio') ? ['-i', wavPath, '-map', '0:v:0', '-map', '1:a:0', '-c:a', 'aac', '-b:a', '192k'] : ['-map', '0:v:0']),
-    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709:range=tv',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', ...BT709, '-r', String(meta.fps),
     '-frames:v', String(meta.frames), '-movflags', '+faststart', out];
   const r = spawnSync('ffmpeg', args, { stdio: 'inherit' });
