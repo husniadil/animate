@@ -10,8 +10,9 @@
   // loudness for a phone: integrated loudness (ITU-R BS.1770: K-weighted, gated) to -15 LUFS, the middle of review's
   // -16 to -14 target, then a look-ahead limiter on the true (4x oversampled) peak at -2 dBTP. The AAC encode adds 0.4 to
   // 1 dB of overshoot on a typical score, so that file stays at or under -1 dBTP; hard full-scale transients took about
-  // 3 dB in a test, and that file came out over 0 dBTP. A make-up pass restores what the limiter took;
-  // a peaky score (square waves) gets more passes only while it sits under -16 LUFS, since each costs more gain reduction.
+  // 3 dB in a test, so tools/export.mjs measures the decoded file and limits lower until it is. A make-up pass restores
+  // what the limiter took; a peaky score (square waves) gets more passes only while it sits under -16 LUFS, since each
+  // costs more gain reduction.
   // Stems reuse the mix's gain and gain curve, so they sum back to the mix.
   let k = normIn?.k, g = normIn?.g;
   if (!g) {

@@ -185,6 +185,34 @@ const full = from === 0 && to === meta.frames - 1;
 // colour: the frames are sRGB, and players read HD and phone video as BT.709. Convert with that matrix and say so in the stream;
 // ffmpeg's default (the BT.601 matrix, untagged) shows saturated colours shifted in browsers.
 const BT709 = ['-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv'];
+// the AAC encode overshoots the true peak: 0.4 to 1 dB on a typical score, about 3 dB on hard full-scale transients.
+// Measure what a player decodes, and while it is over -1 dBTP, limit audio.wav lower by that much (at 4x the rate, so
+// peaks between samples count, with the look-ahead delay removed so hits keep their frame) and re-encode only the audio.
+const MAX_DECODED_DBTP = -1, MIX_CEILING_DBTP = -2;
+function loudness(f) {
+  const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', f, '-vn', '-af', 'ebur128=peak=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const s = e.slice(e.lastIndexOf('Summary:')), num = (re) => { const v = re.exec(s)?.[1]; return v === '-inf' ? -Infinity : Number(v); };
+  return { I: num(/I:\s+(\S+) LUFS/), TP: num(/True peak:\s+Peak:\s+(\S+) dBFS/) };
+}
+function keepDecodedPeak(mp4) {
+  const show = (m) => `${m.I.toFixed(1)} LUFS, true peak ${m.TP.toFixed(1)} dBTP`;
+  const limited = path.join(RENDERS, 'audio-limited.wav'), tmp = path.join(RENDERS, 'final-peak.mp4');
+  let m = loudness(mp4), ceiling = MIX_CEILING_DBTP;
+  for (let pass = 1; pass <= 3 && m.TP > MAX_DECODED_DBTP; pass++) {
+    ceiling -= m.TP - MAX_DECODED_DBTP + 0.3;
+    const af = `aresample=192000,alimiter=limit=${(10 ** (ceiling / 20)).toFixed(4)}:attack=1:release=60:level=false:latency=true,aresample=48000`;
+    let r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', wavPath, '-af', af, '-c:a', 'pcm_s24le', limited], { stdio: 'inherit' });
+    if (r.status === 0) r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', mp4, '-i', limited,
+      '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', tmp], { stdio: 'inherit' });
+    if (r.status !== 0) { console.error('true-peak pass failed'); process.exit(1); }
+    fs.renameSync(tmp, mp4);
+    const before = m; m = loudness(mp4);
+    console.log(`decoded audio was ${show(before)}: limited at ${ceiling.toFixed(1)} dBTP and re-encoded (pass ${pass})`);
+  }
+  fs.rmSync(limited, { force: true });
+  if (m.TP > MAX_DECODED_DBTP) { console.error(`decoded audio still at ${show(m)}, over ${MAX_DECODED_DBTP} dBTP: tame the hardest transients in the mix`); process.exit(1); }
+  console.log(`decoded audio: ${show(m)}`);
+}
 if (!flag('no-mux') && !onlyAudio && full) {
   const out = path.join(RENDERS, opt('out', `final${SUFFIX}.mp4`));
   const args = ['-y', '-hide_banner', '-loglevel', 'error',
@@ -196,6 +224,7 @@ if (!flag('no-mux') && !onlyAudio && full) {
   const r = spawnSync('ffmpeg', args, { stdio: 'inherit' });
   if (r.status !== 0) { console.error('ffmpeg failed'); process.exit(1); }
   console.log('wrote', out);
+  if (fs.existsSync(wavPath) && !flag('no-audio')) keepDecodedPeak(out);
 
   if (meta.narration && meta.narration.length && !flag('no-captions')) {
     const ts = (s) => { const ms = Math.round(s * 1000), h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, sec = Math.floor(ms / 1000) % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`; };
@@ -220,12 +249,14 @@ if (onlyAudio && !flag('no-mux') && fs.existsSync(path.join(RENDERS, `final${SUF
   if (r.status !== 0) { console.error('remux failed'); process.exit(1); }
   fs.renameSync(tmp, path.join(RENDERS, `final${SUFFIX}.mp4`));
   console.log('remuxed the new audio into', path.join(RENDERS, `final${SUFFIX}.mp4`));
+  keepDecodedPeak(path.join(RENDERS, `final${SUFFIX}.mp4`));
 }
-// --share: a smaller encode for sending to a phone (CRF 24)
+// --share: a smaller encode for sending to a phone (CRF 24); the audio is copied, since a second AAC encode would
+// overshoot the true peak again
 if (flag('share') && fs.existsSync(path.join(RENDERS, `final${SUFFIX}.mp4`))) {
   const out = path.join(RENDERS, `share${SUFFIX}.mp4`);
   const r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', path.join(RENDERS, `final${SUFFIX}.mp4`), '-c:v', 'libx264', '-crf', '24', '-preset', 'slow',
-    '-pix_fmt', 'yuv420p', ...BT709, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out], { stdio: 'inherit' });
+    '-pix_fmt', 'yuv420p', ...BT709, '-c:a', 'copy', '-movflags', '+faststart', out], { stdio: 'inherit' });
   if (r.status !== 0) { console.error('share encode failed'); process.exit(1); }
   console.log('wrote', out);
 }
