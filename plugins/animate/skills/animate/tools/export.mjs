@@ -94,6 +94,13 @@ async function openPage() {
 const first = await openPage();
 const from = parseInt(opt('from', '0'), 10);
 const to = Math.min(parseInt(opt('to', String(meta.frames - 1)), 10), meta.frames - 1);
+// captions burn through ffmpeg's subtitles filter, which needs libass: check before the frames render, not after
+if (meta.narration && meta.narration.length && !flag('no-captions') && !flag('no-mux') && !onlyAudio && from === 0 && to === meta.frames - 1
+  && !/\ssubtitles\s/.test(spawnSync('ffmpeg', ['-hide_banner', '-filters'], { encoding: 'utf8' }).stdout || '')) {
+  console.error('captions: this ffmpeg has no subtitles filter (built without libass), so the narration cannot be burned in. Use an ffmpeg built with libass, or pass --no-captions.');
+  await browser.close();
+  process.exit(1);
+}
 console.log(`index.html: ${meta.width}x${meta.height}, ${meta.frames} frames @ ${meta.fps}fps (${(meta.frames / meta.fps).toFixed(4)}s)`);
 // another format than the main one: its own frames folder and renders/<name>-<w>x<h>.mp4
 const SUFFIX = FORMAT && FORMAT !== (PIECE_JSON.formats || [])[0] ? `-${meta.width}x${meta.height}` : '';   // the main format (piece.json "formats"[0]) keeps final.mp4
@@ -114,11 +121,15 @@ if (!onlyAudio) {
       const b64 = await page.evaluate(([fi, n]) => {
         const cv = document.getElementById('c'), fps = window.TIMELINE.fps;
         if (n <= 1) { window.renderFrame(fi / fps); return cv.toDataURL('image/png').split(',')[1]; }
-        // motion blur: n sub-frames across half the frame interval (a 180-degree shutter), averaged
-        const g = cv.getContext('2d'), acc = new Float32Array(cv.width * cv.height * 4);
-        for (let j = 0; j < n; j++) { window.renderFrame((fi + (j / n) * 0.5) / fps, cv, true); const d = g.getImageData(0, 0, cv.width, cv.height).data; for (let k = 0; k < d.length; k++) acc[k] += d[k]; }
-        const out = g.createImageData(cv.width, cv.height); for (let k = 0; k < acc.length; k++) out.data[k] = Math.round(acc[k] / n);
-        g.putImageData(out, 0, 0); return cv.toDataURL('image/png').split(',')[1];
+        // motion blur: n sub-frames across half the frame interval (a 180-degree shutter), averaged in linear light
+        // pixels go through a 2D canvas of the same size, so a WebGL canvas (which has no 2D context) blurs too
+        const off = document.createElement('canvas'); off.width = cv.width; off.height = cv.height;
+        const g = off.getContext('2d'), acc = new Float32Array(cv.width * cv.height * 4);
+        const lin = new Float32Array(256); for (let v = 0; v < 256; v++) { const c = v / 255; lin[v] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }
+        for (let j = 0; j < n; j++) { window.renderFrame((fi + (j / n) * 0.5) / fps, cv, true); g.clearRect(0, 0, off.width, off.height); g.drawImage(cv, 0, 0); const d = g.getImageData(0, 0, cv.width, cv.height).data; for (let k = 0; k < d.length; k++) acc[k] += (k & 3) === 3 ? d[k] : lin[d[k]]; }
+        const out = g.createImageData(cv.width, cv.height);
+        for (let k = 0; k < acc.length; k++) { const m = acc[k] / n; out.data[k] = Math.round((k & 3) === 3 ? m : 255 * (m <= 0.0031308 ? 12.92 * m : 1.055 * m ** (1 / 2.4) - 0.055)); }
+        g.putImageData(out, 0, 0); return off.toDataURL('image/png').split(',')[1];
       }, [i, BLUR]);
       fs.writeFileSync(path.join(FR, `f${String(i).padStart(4, '0')}.png`), Buffer.from(b64, 'base64'));
       if (++done % 24 === 0) console.log(`  ${done}/${to - from + 1} frames  ${((Date.now() - t0) / done).toFixed(0)}ms/frame`);
@@ -146,7 +157,7 @@ if (!flag('no-audio')) {
     if (!fs.existsSync(track)) { console.error('music file not found:', track); process.exit(1); }
     const chain = `[0:a]aresample=48000,aformat=channel_layouts=stereo,volume=${M.gain ?? 0}dB,afade=t=out:st=${Math.max(0, dur - fade)}:d=${fade}`;
     const inputs = ['-ss', String(M.start ?? 0), '-t', String(dur), '-i', track, ...(fs.existsSync(sfx) ? ['-i', sfx] : [])];
-    const graph = fs.existsSync(sfx) ? `${chain}[m];[1:a]aresample=48000,aformat=channel_layouts=stereo[s];[m][s]amix=inputs=2:normalize=0:duration=first,loudnorm=I=-14:TP=-1.5:LRA=11[o]` : `${chain},loudnorm=I=-14:TP=-1.5:LRA=11[o]`;
+    const graph = fs.existsSync(sfx) ? `${chain}[m];[1:a]aresample=48000,aformat=channel_layouts=stereo[s];[m][s]amix=inputs=2:normalize=0:duration=first,loudnorm=I=-14:TP=-2:LRA=11[o]` : `${chain},loudnorm=I=-14:TP=-2:LRA=11[o]`;
     let r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...inputs, '-filter_complex', graph, '-map', '[o]', '-ar', '48000', '-t', String(dur), wavPath], { stdio: 'inherit' });
     if (r.status !== 0) { console.error('music mix failed'); process.exit(1); }
     r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-ss', String(M.start ?? 0), '-t', String(dur), '-i', track, '-filter_complex', `${chain}[o]`, '-map', '[o]', path.join(RENDERS, 'stem-music.wav')], { stdio: 'inherit' });
@@ -161,7 +172,7 @@ if (!flag('no-audio')) {
     const graph = `[1:a]aresample=48000,aformat=channel_layouts=stereo,volume=${V.gain ?? 0}dB,apad,asplit=2[v][k];` +
       `[0:a]aresample=48000,aformat=channel_layouts=stereo,volume=${V.music ?? -14}dB[s];` +
       `[s][k]sidechaincompress=threshold=0.02:ratio=4:attack=30:release=400[d];` +
-      `[d][v]amix=inputs=2:normalize=0:duration=first,loudnorm=I=-14:TP=-1.5:LRA=11[o]`;
+      `[d][v]amix=inputs=2:normalize=0:duration=first,loudnorm=I=-14:TP=-2:LRA=11[o]`;
     let r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', mixIn, '-i', vo, '-filter_complex', graph, '-map', '[o]', '-ar', '48000', '-t', String(dur), wavPath], { stdio: 'inherit' });
     if (r.status !== 0) { console.error('voice mix failed'); process.exit(1); }
     r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', vo, '-af', 'apad', '-ar', '48000', '-ac', '2', '-t', String(dur), path.join(RENDERS, 'stem-voice.wav')], { stdio: 'inherit' });
@@ -179,7 +190,7 @@ if (!flag('no-mux') && !onlyAudio && full) {
   const args = ['-y', '-hide_banner', '-loglevel', 'error',
     '-framerate', String(meta.fps), '-i', path.join(FR, 'f%04d.png'),
     ...(fs.existsSync(wavPath) && !flag('no-audio') ? ['-i', wavPath, '-map', '0:v:0', '-map', '1:a:0', '-c:a', 'aac', '-b:a', '192k'] : ['-map', '0:v:0']),
-    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709:range=tv',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', ...BT709, '-r', String(meta.fps),
     '-frames:v', String(meta.frames), '-movflags', '+faststart', out];
   const r = spawnSync('ffmpeg', args, { stdio: 'inherit' });
