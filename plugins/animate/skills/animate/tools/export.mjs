@@ -94,6 +94,13 @@ async function openPage() {
 const first = await openPage();
 const from = parseInt(opt('from', '0'), 10);
 const to = Math.min(parseInt(opt('to', String(meta.frames - 1)), 10), meta.frames - 1);
+// captions burn through ffmpeg's subtitles filter, which needs libass: check before the frames render, not after
+if (meta.narration && meta.narration.length && !flag('no-captions') && !flag('no-mux') && !onlyAudio && from === 0 && to === meta.frames - 1
+  && !/\ssubtitles\s/.test(spawnSync('ffmpeg', ['-hide_banner', '-filters'], { encoding: 'utf8' }).stdout || '')) {
+  console.error('captions: this ffmpeg has no subtitles filter (built without libass), so the narration cannot be burned in. Use an ffmpeg built with libass, or pass --no-captions.');
+  await browser.close();
+  process.exit(1);
+}
 console.log(`index.html: ${meta.width}x${meta.height}, ${meta.frames} frames @ ${meta.fps}fps (${(meta.frames / meta.fps).toFixed(4)}s)`);
 // another format than the main one: its own frames folder and renders/<name>-<w>x<h>.mp4
 const SUFFIX = FORMAT && FORMAT !== (PIECE_JSON.formats || [])[0] ? `-${meta.width}x${meta.height}` : '';   // the main format (piece.json "formats"[0]) keeps final.mp4
