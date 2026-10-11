@@ -114,10 +114,12 @@ if (!onlyAudio) {
       const b64 = await page.evaluate(([fi, n]) => {
         const cv = document.getElementById('c'), fps = window.TIMELINE.fps;
         if (n <= 1) { window.renderFrame(fi / fps); return cv.toDataURL('image/png').split(',')[1]; }
-        // motion blur: n sub-frames across half the frame interval (a 180-degree shutter), averaged
+        // motion blur: n sub-frames across half the frame interval (a 180-degree shutter), averaged in linear light
         const g = cv.getContext('2d'), acc = new Float32Array(cv.width * cv.height * 4);
-        for (let j = 0; j < n; j++) { window.renderFrame((fi + (j / n) * 0.5) / fps, cv, true); const d = g.getImageData(0, 0, cv.width, cv.height).data; for (let k = 0; k < d.length; k++) acc[k] += d[k]; }
-        const out = g.createImageData(cv.width, cv.height); for (let k = 0; k < acc.length; k++) out.data[k] = Math.round(acc[k] / n);
+        const lin = new Float32Array(256); for (let v = 0; v < 256; v++) { const c = v / 255; lin[v] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }
+        for (let j = 0; j < n; j++) { window.renderFrame((fi + (j / n) * 0.5) / fps, cv, true); const d = g.getImageData(0, 0, cv.width, cv.height).data; for (let k = 0; k < d.length; k++) acc[k] += (k & 3) === 3 ? d[k] : lin[d[k]]; }
+        const out = g.createImageData(cv.width, cv.height);
+        for (let k = 0; k < acc.length; k++) { const m = acc[k] / n; out.data[k] = Math.round((k & 3) === 3 ? m : 255 * (m <= 0.0031308 ? 12.92 * m : 1.055 * m ** (1 / 2.4) - 0.055)); }
         g.putImageData(out, 0, 0); return cv.toDataURL('image/png').split(',')[1];
       }, [i, BLUR]);
       fs.writeFileSync(path.join(FR, `f${String(i).padStart(4, '0')}.png`), Buffer.from(b64, 'base64'));
